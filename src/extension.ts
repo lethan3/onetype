@@ -20,21 +20,35 @@ export function activate(context: vscode.ExtensionContext) {
             return false;
         }
     })();
+  
+    function getLockPath(): string {
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const rootWritable = root && (() => {
+            try {
+                fs.accessSync(root, fs.constants.W_OK);
+                return true;
+            } catch {
+                return false;
+            }
+        })();
 
-    lockPath = rootWritable ? path.join(root!, LOCK_FILENAME) : path.join(context.globalStorageUri.fsPath, LOCK_FILENAME);
+        return rootWritable ? path.join(root!, LOCK_FILENAME) : path.join(context.globalStorageUri.fsPath, LOCK_FILENAME);
+    }
 
     function readLock(): any {
-        if (!fs.existsSync(lockPath)) return null;
+        const pathToUse = getLockPath();
+        if (!fs.existsSync(pathToUse)) return null;
         try {
-            return JSON.parse(fs.readFileSync(lockPath, 'utf-8'));
+            return JSON.parse(fs.readFileSync(pathToUse, 'utf-8'));
         } catch {
             return null;
         }
     }
 
     function writeLock(data: any) {
-        fs.mkdirSync(path.dirname(lockPath), { recursive: true });
-        fs.writeFileSync(lockPath, JSON.stringify(data, null, 2));
+        const pathToUse = getLockPath();
+        fs.mkdirSync(path.dirname(pathToUse), { recursive: true });
+        fs.writeFileSync(pathToUse, JSON.stringify(data, null, 2));
     }
 
     function hasEditLock(): boolean {
@@ -148,7 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', async () => {
-        if (!fs.existsSync(lockPath)) {
+        if (!fs.existsSync(getLockPath())) {
             vscode.window.showErrorMessage('❌ No session found. Use "Host Session" to start.');
             return;
         }
