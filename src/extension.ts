@@ -140,6 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', async () => {
+        console.log('Lockpath: %s', getLockPath())
         const input = await vscode.window.showInputBox({ prompt: 'Enter a username to host session' });
         if (!input) return;
         const name = input.trim();
