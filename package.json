@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "onetype",
   "displayName": "OneType",
   "description": "Allow only one user to type, useful for mocking ICPC-style competitions",
   "version": "0.0.1",
@@ -9,14 +9,18 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "test.helloWorld",
-        "title": "Hello World"
-      }
+      { "command": "onetype.hostSession", "title": "OneType: Host Session" },
+      { "command": "onetype.joinSession", "title": "OneType: Join Session" },
+      { "command": "onetype.leaveSession", "title": "OneType: Leave Session" },
+      { "command": "onetype.requestAccess", "title": "OneType: Request Access" },
+      { "command": "onetype.forceAccess", "title": "OneType: Force Take Access" },
+      { "command": "onetype.giveAccess", "title": "OneType: Give Access to User" }
     ]
   },
   "scripts": {
