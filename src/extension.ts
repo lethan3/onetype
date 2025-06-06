@@ -8,12 +8,20 @@ const ERROR_INTERVAL_MS = 1500;
 let lastEditErrorTime = 0;
 let isSessionActive = false;
 let userName = '';
+let lockPath = '';
 
 export function activate(context: vscode.ExtensionContext) {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!root) return;
+    const rootWritable = root && (() => {
+        try {
+            fs.accessSync(root, fs.constants.W_OK);
+            return true;
+        } catch {
+            return false;
+        }
+    })();
 
-    const lockPath = path.join(root, LOCK_FILENAME);
+    lockPath = rootWritable ? path.join(root!, LOCK_FILENAME) : path.join(context.globalStorageUri.fsPath, LOCK_FILENAME);
 
     function readLock(): any {
         if (!fs.existsSync(lockPath)) return null;
@@ -25,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     function writeLock(data: any) {
+        fs.mkdirSync(path.dirname(lockPath), { recursive: true });
         fs.writeFileSync(lockPath, JSON.stringify(data, null, 2));
     }
 
