@@ -7,13 +7,13 @@ const ERROR_INTERVAL_MS = 1500;
 
 let lastEditErrorTime = 0;
 let isSessionActive = false;
+let userName = '';
 
 export function activate(context: vscode.ExtensionContext) {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!root) return;
 
     const lockPath = path.join(root, LOCK_FILENAME);
-    const userName = vscode.env.machineId;
 
     function readLock(): any {
         if (!fs.existsSync(lockPath)) return null;
@@ -116,7 +116,18 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('🔒 You have requested access.');
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', async () => {
+        const input = await vscode.window.showInputBox({ prompt: 'Enter a username to host session' });
+        if (!input) return;
+        const name = input.trim();
+
+        const existingLock = readLock();
+        if (existingLock && existingLock.users.includes(name)) {
+            vscode.window.showErrorMessage('❌ Username already taken. Please choose a different one.');
+            return;
+        }
+
+        userName = name;
         const lock = {
             owner: userName,
             users: [userName],
@@ -124,16 +135,35 @@ export function activate(context: vscode.ExtensionContext) {
         };
         writeLock(lock);
         isSessionActive = true;
-        vscode.window.showInformationMessage('🟢 OneType session started as host.');
+        vscode.window.showInformationMessage(`🟢 OneType session started as host: ${userName}`);
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', async () => {
         if (!fs.existsSync(lockPath)) {
             vscode.window.showErrorMessage('❌ No session found. Use "Host Session" to start.');
             return;
         }
-        isSessionActive = true;
-        vscode.window.showInformationMessage('🟢 Joined OneType session.');
+
+        while (true) {
+            const input = await vscode.window.showInputBox({ prompt: 'Enter a username to join session' });
+            if (!input) return;
+            const name = input.trim();
+            const existingLock = readLock();
+            if (!existingLock) {
+                vscode.window.showErrorMessage('❌ Failed to join session. Try again.');
+                return;
+            }
+            if (existingLock.users.includes(name)) {
+                vscode.window.showErrorMessage('❌ Username already taken. Please choose a different one.');
+            } else {
+                userName = name;
+                existingLock.users.push(userName);
+                writeLock(existingLock);
+                isSessionActive = true;
+                vscode.window.showInformationMessage(`🟢 Joined OneType session as ${userName}`);
+                break;
+            }
+        }
     }));
 }
 
