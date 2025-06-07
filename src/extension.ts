@@ -1,5 +1,4 @@
 // extension.ts
-import { debug } from 'console';
 import * as vscode from 'vscode';
 import * as vsls from 'vsls';
 
@@ -13,7 +12,7 @@ const ERROR_INTERVAL_MS = 5000;
 let myUsername: string | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    const liveshare = (await vsls.getApi())!;
+    const liveshare = await vsls.getApi();
     if (!liveshare) {
         vscode.window.showErrorMessage('Live Share not detected. Are you currently in a Live Share session?');
         return;
@@ -31,20 +30,28 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('----------------------------');
     }
 
-    // LiveShare activity handler
-    (liveshare.onActivity)!((e: any) => {
-        console.log("Recieved activity with type %s.", e.name);
-        const { timestamp, name, data } = e;
+    let sharedService: vsls.SharedService | null = null;
+    let sharedProxy: vsls.SharedServiceProxy | null = null;
 
-        if (name === 'join' && liveshare.session && liveshare.session.role === vsls.Role.Host) {
-            console.log("Received join activity as host.");
-            debugSessionState();
+    liveshare.onDidChangeSession(async (e) => {
+        if (e.session && myUsername === host) {
+            sharedService = await liveshare.shareService('onetype-sync');
+            if (!sharedService) return;
 
-            if (!users.includes(data.username)) {
-                users.push(data.username);
+            sharedService.onNotify('join', (data: any) => {
+                console.log(`Received join from ${data.username}`);
+                if (!users.includes(data.username)) {
+                    users.push(data.username);
+                    sharedService!.notify('initiateJoin', { host, editor, users, requests });
+                }
+            });
 
-                console.log("Posting initiateJoin activity as host.");
+            sharedService.onNotify('transferAccess', (data: any) => {
+                console.log(`Transfer edit access from ${data.from} to ${data.to}`);
+                editor = data.to;
+                vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}`);
                 debugSessionState();
+            });
 
                 (liveshare.postActivity)!({
                     timestamp: new Date(Date.now()),
@@ -70,29 +77,30 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             
             inSession = true;
+            console.log("Shared service initialized as host.");
+        }
 
-            console.log("Initialized / Updated session variables as non-host.");
-            debugSessionState();
-        } else if (name === 'transferAccess') {
-            console.log("Received transfer command from %s to %s.", e.from, e.to);
+        if (e.session && myUsername !== host) {
+            sharedProxy = await liveshare.getSharedService('onetype-sync');
+            if (!sharedProxy) return;
 
-            editor = e.to;
-            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
+            sharedProxy.onNotify('initiateJoin', (data: any) => {
+                ({ host, editor, users, requests } = data);
+                inSession = true;
+                console.log("Received initiateJoin as guest.");
+                debugSessionState();
+            });
 
-            console.log("Edit access transferred to %s.", e.to);
+            console.log("Shared service proxy initialized as guest.");
         }
     });
 
-    // Revert unauthorized edits and show popup
+    // Protect files from unauthorized edits
     vscode.workspace.onDidChangeTextDocument(event => {
-        if (!inSession || editor === myUsername) {
-            return;
-        }
+        if (!inSession || editor === myUsername) return;
 
         const editorInstance = vscode.window.activeTextEditor;
-        if (!editorInstance || editorInstance.document !== event.document) {
-            return;
-        }
+        if (!editorInstance || editorInstance.document !== event.document) return;
 
         const now = Date.now();
         if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
@@ -113,9 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) {
-            return;
-        }
+        if (!username) return;
         myUsername = username;
 
         inSession = true;
@@ -126,8 +132,17 @@ export async function activate(context: vscode.ExtensionContext) {
         // const sessionUri = await liveshare.share({});
 
         vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
+        // Need to host Live Share first THEN host OneType session
 
-        console.log("Hosting started.");
+        // const sessionUri = await liveshare.share({});
+        // console.log("Live Share attempted to start. Returned URI: %s", sessionUri?.path);
+        // if (sessionUri) {
+        //     await vscode.env.clipboard.writeText(sessionUri.toString());
+        //     vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
+        // } else {
+        //     vscode.window.showErrorMessage('Failed to start Live Share session.');
+        // }
+
         debugSessionState();
     }));
 
@@ -138,32 +153,39 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // const link = await vscode.window.showInputBox({ prompt: 'Enter Live Share join link' });
-        // if (!link) {
-        //     return;
-        // }
-
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) {
-            return;
-        }
+        if (!username) return;
         myUsername = username;
 
-        // await liveshare.join(vscode.Uri.file(link));
+        // Wait for session to connect and service to be available
+        const waitForProxy = async (): Promise<vsls.SharedServiceProxy | null> => {
+            const proxy = await liveshare.getSharedService('onetype-sync');
+            if (proxy && proxy.isServiceAvailable) {
+                return proxy;
+            }
+            return new Promise(resolve => {
+                const temp = liveshare.getSharedService('onetype-sync');
+                temp.then(proxy => {
+                    if (proxy) {
+                        proxy.onDidChangeIsServiceAvailable(() => {
+                            if (proxy.isServiceAvailable) {
+                                resolve(proxy);
+                            }
+                        });
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+        };
 
-        // Wait until session is fully joined
-        // liveshare.onDidChangeSession(e => {
-            // if (e.session && e.session.role !== vsls.Role.Host) {
-        
-        console.log("Posting join activity as %s.", username);
-        (liveshare.postActivity)!({ 
-            timestamp: new Date(Date.now()),
-            name: 'session/onetype-join', 
-            data: { username }
-        });
-        console.log("Finished posting join activity.");
-            // }
-        // });
+        sharedProxy = await waitForProxy();
+        if (sharedProxy) {
+            sharedProxy.notify('join', { username });
+            console.log("Posted join request to host.");
+        } else {
+            vscode.window.showErrorMessage('Unable to connect to host service.');
+        }
     }));
 
     // Command: Give Edit Access
@@ -176,18 +198,18 @@ export async function activate(context: vscode.ExtensionContext) {
         const target = await vscode.window.showQuickPick(users.filter(u => u !== myUsername), {
             placeHolder: 'Select a user to give edit access to'
         });
-        if (!target) {
-            return;
-        }
+        if (!target) return;
 
         editor = target;
+        debugSessionState();
 
-        console.log("Posting transferAccess activity from %s to %s.", myUsername, target);
-        (liveshare.postActivity!)({ 
-            timestamp: new Date(Date.now()),
-            name: 'transferAccess', 
-            data: { from: myUsername, to: target }
-        });
+        if (sharedService) {
+            sharedService.notify('transferAccess', { from: myUsername, to: target });
+        } else if (sharedProxy) {
+            sharedProxy.notify('transferAccess', { from: myUsername, to: target });
+        } else {
+            vscode.window.showErrorMessage('No messaging service available.');
+        }
     }));
 }
 
