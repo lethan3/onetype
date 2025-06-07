@@ -11,14 +11,17 @@ let requests: string[] = [];
 let lastEditErrorTime = 0;
 const ERROR_INTERVAL_MS = 5000;
 let myUsername: string | null = null;
+let liveshare: vsls.LiveShare;
 
 export async function activate(context: vscode.ExtensionContext) {
-    const liveshare = (await vsls.getApi())!;
-    if (!liveshare) {
-        vscode.window.showErrorMessage('Live Share not detected. Are you currently in a Live Share session?');
-        return;
-    } else {
-        vscode.window.showInformationMessage('Live Share session detected.');
+    async function initLiveShare() {
+        liveshare = (await vsls.getApi())!;
+        if (!liveshare) {
+            vscode.window.showErrorMessage('Live Share not detected. Are you currently in a Live Share session?');
+            return;
+        } else {
+            vscode.window.showInformationMessage('Live Share session detected.');
+        }
     }
 
     function debugSessionState() {
@@ -111,6 +114,9 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('Already in a session.');
             return;
         }
+
+        initLiveShare();
+
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
             return;
@@ -136,6 +142,8 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('Already in a session.');
             return;
         }
+
+        initLiveShare();
 
         // const link = await vscode.window.showInputBox({ prompt: 'Enter Live Share join link' });
         // if (!link) {
