@@ -86,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 users.push(data.username);
                 debugSessionState();
                 await service.notify('initiateJoin', { host, editor, users, requests });
-                console.log("Sent initiateJoin to new user.");
+                console.log("Sent initiateJoin to all users.");
             }
         });
 
