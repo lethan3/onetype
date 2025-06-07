@@ -26,10 +26,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Revert unauthorized edits and show popup
     vscode.workspace.onDidChangeTextDocument(event => {
-        if (!inSession || editor === myUsername) return;
+        if (!inSession || editor === myUsername) {
+            return;
+        }
 
         const editorInstance = vscode.window.activeTextEditor;
-        if (!editorInstance || editorInstance.document !== event.document) return;
+        if (!editorInstance || editorInstance.document !== event.document) {
+            return;
+        }
 
         const now = Date.now();
         if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
@@ -63,7 +67,9 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) return;
+        if (!username) {
+            return;
+        }
 
         myUsername = username;
         inSession = true;
@@ -104,7 +110,9 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) return;
+        if (!username) {
+            return;
+        }
 
         myUsername = username;
 
@@ -148,14 +156,16 @@ export async function activate(context: vscode.ExtensionContext) {
         const target = await vscode.window.showQuickPick(users.filter(u => u !== myUsername), {
             placeHolder: 'Select a user to give edit access to'
         });
-        if (!target) return;
+        if (!target) {
+            return;
+        }
 
         editor = target;
 
         const proxy = await liveshare!.getSharedService(SERVICE_NAME);
         if (!proxy) {
             vscode.window.showErrorMessage('Cannot find host session.');
-            return;
+            return; 
         }
 
         console.log("Posting transferAccess notification from %s to %s.", myUsername, target);
