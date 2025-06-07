@@ -111,7 +111,6 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('Already in a session.');
             return;
         }
-
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
             return;
