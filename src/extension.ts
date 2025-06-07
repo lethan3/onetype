@@ -1,5 +1,3 @@
-// extension.ts
-import { debug } from 'console';
 import * as vscode from 'vscode';
 import * as vsls from 'vsls';
 
@@ -13,69 +11,9 @@ const ERROR_INTERVAL_MS = 5000;
 let myUsername: string | null = null;
 let liveshare: vsls.LiveShare | null = null;
 
+const SERVICE_NAME = 'onetype';
+
 export async function activate(context: vscode.ExtensionContext) {
-    async function initLiveShare() {
-        liveshare = (await vsls.getApi())!;
-        if (!liveshare) {
-            vscode.window.showErrorMessage('LiveShare not detected. Are you currently in a LiveShare session?');
-            return;
-        }
-
-        vscode.window.showInformationMessage('LiveShare session detected.');
-        
-        // Liveshare activity handler
-        (liveshare!.onActivity)!((e: any) => {
-            console.log("Recieved activity with type %s.", e.name);
-            const { timestamp, name, data } = e;
-
-            if (name === 'join' && liveshare!.session && liveshare!.session.role === vsls.Role.Host) {
-                console.log("Received join activity as host.");
-                debugSessionState();
-
-                if (!users.includes(data.username)) {
-                    users.push(data.username);
-
-                    console.log("Posting initiateJoin activity as host.");
-                    debugSessionState();
-
-                    (liveshare!.postActivity)!({
-                        timestamp: new Date(Date.now()),
-                        name: 'initiateJoin',
-                        data: { host, editor, users, requests }
-                    });
-                }
-
-                console.log("Sent initiateJoin activity as host.");
-                debugSessionState();
-            } else if (name === 'initiateJoin' && liveshare!.session && liveshare!.session.role !== vsls.Role.Host) {
-                console.log("Received initiateJoin activity as non-host.");
-                debugSessionState();
-                
-                var updUsers;
-                ({ host, editor, users: updUsers, requests } = data);
-                const newUsers = updUsers.filter((x: string) => !users.includes(x));
-                
-                if (newUsers.size() === 1) {
-                    vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
-                } else {
-                    vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
-                }
-                
-                inSession = true;
-
-                console.log("Initialized / Updated session variables as non-host.");
-                debugSessionState();
-            } else if (name === 'transferAccess') {
-                console.log("Received transfer command from %s to %s.", e.from, e.to);
-
-                editor = e.to;
-                vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
-
-                console.log("Edit access transferred to %s.", e.to);
-            }
-        });
-    }
-
     function debugSessionState() {
         console.log('--- Session State Debug ---');
         console.log('inSession:', inSession);
@@ -88,14 +26,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Revert unauthorized edits and show popup
     vscode.workspace.onDidChangeTextDocument(event => {
-        if (!inSession || editor === myUsername) {
-            return;
-        }
+        if (!inSession || editor === myUsername) return;
 
         const editorInstance = vscode.window.activeTextEditor;
-        if (!editorInstance || editorInstance.document !== event.document) {
-            return;
-        }
+        if (!editorInstance || editorInstance.document !== event.document) return;
 
         const now = Date.now();
         if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
@@ -108,72 +42,103 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('workbench.action.files.revert');
     });
 
-    // Command: Host a Session
     context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', async () => {
         if (inSession) {
             vscode.window.showErrorMessage('Already in a session.');
             return;
         }
 
-        initLiveShare();
-
-        const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) {
+        liveshare = await vsls.getApi();
+        if (!liveshare) {
+            vscode.window.showErrorMessage('LiveShare not detected.');
             return;
         }
-        myUsername = username;
 
+        const service = await liveshare.shareService(SERVICE_NAME);
+        if (!service) {
+            vscode.window.showErrorMessage('Failed to share RPC service.');
+            return;
+        }
+
+        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
+
+        const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
+        if (!username) return;
+
+        myUsername = username;
         inSession = true;
         host = editor = username;
         users = [username];
         requests = [];
 
-        // const sessionUri = await liveshare!.share({});
-
-        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
-
         console.log("Hosting started.");
         debugSessionState();
+
+        service.onNotify('join', async (data: any) => {
+            console.log("Received join notification as host.");
+            if (!users.includes(data.username)) {
+                users.push(data.username);
+                debugSessionState();
+                await service.notify('initiateJoin', { host, editor, users, requests });
+                console.log("Sent initiateJoin to new user.");
+            }
+        });
+
+        service.onNotify('transferAccess', (data: any) => {
+            console.log("Received transferAccess command from %s to %s.", data.from, data.to);
+            editor = data.to;
+            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
+        });
     }));
 
-    // Command: Join a Session
     context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', async () => {
         if (inSession) {
             vscode.window.showErrorMessage('Already in a session.');
             return;
         }
 
-        initLiveShare();
-
-        // const link = await vscode.window.showInputBox({ prompt: 'Enter LiveShare join link' });
-        // if (!link) {
-        //     return;
-        // }
-
-        const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
-        if (!username) {
+        liveshare = await vsls.getApi();
+        if (!liveshare) {
+            vscode.window.showErrorMessage('LiveShare not detected.');
             return;
         }
+
+        const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
+        if (!username) return;
+
         myUsername = username;
 
-        // await liveshare!.join(vscode.Uri.file(link));
+        const proxy = await liveshare.getSharedService(SERVICE_NAME);
+        if (!proxy) {
+            vscode.window.showErrorMessage('Host has not started OneType session.');
+            return;
+        }
 
-        // Wait until session is fully joined
-        // liveshare!.onDidChangeSession(e => {
-            // if (e.session && e.session.role !== vsls.Role.Host) {
-        
-        console.log("Posting join activity as %s.", username);
-        (liveshare!.postActivity)!({ 
-            timestamp: new Date(Date.now()),
-            name: 'session/onetype-join', 
-            data: { username }
+        await proxy.notify('join', { username });
+        console.log("Sent join notification as guest.");
+
+        proxy.onNotify('initiateJoin', (data: any) => {
+            console.log("Received initiateJoin as guest.");
+            let updUsers;
+            ({ host, editor, users: updUsers, requests } = data);
+            const newUsers = updUsers.filter((x: string) => !users.includes(x));
+
+            if (newUsers.length === 1) {
+                vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
+            } else {
+                vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
+            }
+
+            inSession = true;
+            debugSessionState();
         });
-        console.log("Finished posting join activity.");
-            // }
-        // });
+
+        proxy.onNotify('transferAccess', (data: any) => {
+            editor = data.to;
+            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
+        });
     }));
 
-    // Command: Give Edit Access
     context.subscriptions.push(vscode.commands.registerCommand('onetype.giveAccess', async () => {
         if (!inSession || myUsername !== editor) {
             vscode.window.showErrorMessage('Only the current editor can give access.');
@@ -183,18 +148,18 @@ export async function activate(context: vscode.ExtensionContext) {
         const target = await vscode.window.showQuickPick(users.filter(u => u !== myUsername), {
             placeHolder: 'Select a user to give edit access to'
         });
-        if (!target) {
-            return;
-        }
+        if (!target) return;
 
         editor = target;
 
-        console.log("Posting transferAccess activity from %s to %s.", myUsername, target);
-        (liveshare!.postActivity!)({ 
-            timestamp: new Date(Date.now()),
-            name: 'transferAccess', 
-            data: { from: myUsername, to: target }
-        });
+        const proxy = await liveshare!.getSharedService(SERVICE_NAME);
+        if (!proxy) {
+            vscode.window.showErrorMessage('Cannot find host session.');
+            return;
+        }
+
+        console.log("Posting transferAccess notification from %s to %s.", myUsername, target);
+        await proxy.notify('transferAccess', { from: myUsername, to: target });
     }));
 }
 
