@@ -107,13 +107,9 @@ export async function activate(context: vscode.ExtensionContext) {
         users = [username];
         requests = [];
 
-        const session = await liveshare.share({});
-        if (session) {
-            await vscode.env.clipboard.writeText(session.toString()!);
-            vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
-        } else {
-            vscode.window.showErrorMessage('Failed to start Live Share session.');
-        }
+        const sessionUri = await liveshare.share({});
+
+        vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
     }));
 
     // Command: Join a Session
