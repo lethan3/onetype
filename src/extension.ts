@@ -151,6 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
             name: 'join', 
             data: { username }
         });
+        console.log("Finished posting join activity.");
             // }
         // });
     }));
