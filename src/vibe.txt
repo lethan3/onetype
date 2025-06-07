@@ -1,0 +1,41 @@
+Session variables:
+    * inSession = Boolean, currently in a session or not
+    * host = Current host of the session
+    * editor = Current editor of the session
+    * users = List of usernames in the session
+    * requests = Queue of usernames requesting edit
+
+Necessary functions:
+
+* OnActivity:
+    * If type is join AND I am the host:
+        * Assert that the username listed is not already present in users
+        * Send an activity of type initiateJoin with the current host, current editor, list of usernames, and queue of usernames
+    * If type is initiateJoin AND I am NOT the host:
+        * Update my session variables with the ones in the activity
+        * Set inSession to true
+    * If type is transferAccess:
+        * Update editor to whoever edit is being transferred to
+
+* OnDocumentChange (or whatever it's called):
+    * If inSession AND I am NOT the editor:
+        * Revert the edit
+        * Popup stating error
+
+* Start a session (command name OneType: Host a Session)
+    * Check not currently in session (otherwise popup with error)
+    * Prompt for a username
+    * Initialize session variables (in session, host = editor = me)
+    * Create LiveShare of current folder
+    * Popup with LiveShare link to copy and distribute
+
+* Join a session (command name OneType: Join a Session)
+    * Check not currently in session (otherwise popup with error)
+    * Prompt for a LiveShare join link
+    * Prompt for a username
+    * Send a LiveShare postActivity event of a join with my username
+
+* Give access (command name OneType: Give Edit Access)
+    * Check currently in session and that I am the editor (otherwise popup with error)
+    * Prompt me to choose a person to grant access to (give me the list of users to choose from)
+    * Post activity of type transferAccess with values me then person I give access to
