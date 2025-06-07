@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let sharedProxy: vsls.SharedServiceProxy | null = null;
 
     liveshare.onDidChangeSession(async (e) => {
-        if (e.session && e.session.role === vsls.Role.Host) {
+        if (e.session && myUsername === host) {
             sharedService = await liveshare.shareService('onetype-sync');
             if (!sharedService) return;
 
@@ -54,7 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
             console.log("Shared service initialized as host.");
         }
 
-        if (e.session && e.session.role === vsls.Role.Guest) {
+        if (e.session && myUsername !== host) {
             sharedProxy = await liveshare.getSharedService('onetype-sync');
             if (!sharedProxy) return;
 
@@ -103,13 +103,16 @@ export async function activate(context: vscode.ExtensionContext) {
         users = [username];
         requests = [];
 
-        const sessionUri = await liveshare.share({});
-        if (sessionUri) {
-            await vscode.env.clipboard.writeText(sessionUri.toString());
-            vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
-        } else {
-            vscode.window.showErrorMessage('Failed to start Live Share session.');
-        }
+        // Need to host Live Share first THEN host OneType session
+
+        // const sessionUri = await liveshare.share({});
+        // console.log("Live Share attempted to start. Returned URI: %s", sessionUri?.path);
+        // if (sessionUri) {
+        //     await vscode.env.clipboard.writeText(sessionUri.toString());
+        //     vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
+        // } else {
+        //     vscode.window.showErrorMessage('Failed to start Live Share session.');
+        // }
 
         debugSessionState();
     }));
