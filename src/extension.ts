@@ -14,14 +14,66 @@ let myUsername: string | null = null;
 let liveshare: vsls.LiveShare | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    async function initLiveshare() {
+    async function initLiveShare() {
         liveshare = (await vsls.getApi())!;
         if (!liveshare) {
             vscode.window.showErrorMessage('LiveShare not detected. Are you currently in a LiveShare session?');
             return;
-        } else {
-            vscode.window.showInformationMessage('LiveShare session detected.');
         }
+
+        vscode.window.showInformationMessage('LiveShare session detected.');
+        
+        // Liveshare activity handler
+        (liveshare!.onActivity)!((e: any) => {
+            console.log("Recieved activity with type %s.", e.name);
+            const { timestamp, name, data } = e;
+
+            if (name === 'join' && liveshare!.session && liveshare!.session.role === vsls.Role.Host) {
+                console.log("Received join activity as host.");
+                debugSessionState();
+
+                if (!users.includes(data.username)) {
+                    users.push(data.username);
+
+                    console.log("Posting initiateJoin activity as host.");
+                    debugSessionState();
+
+                    (liveshare!.postActivity)!({
+                        timestamp: new Date(Date.now()),
+                        name: 'initiateJoin',
+                        data: { host, editor, users, requests }
+                    });
+                }
+
+                console.log("Sent initiateJoin activity as host.");
+                debugSessionState();
+            } else if (name === 'initiateJoin' && liveshare!.session && liveshare!.session.role !== vsls.Role.Host) {
+                console.log("Received initiateJoin activity as non-host.");
+                debugSessionState();
+                
+                var updUsers;
+                ({ host, editor, users: updUsers, requests } = data);
+                const newUsers = updUsers.filter((x: string) => !users.includes(x));
+                
+                if (newUsers.size() === 1) {
+                    vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
+                } else {
+                    vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
+                }
+                
+                inSession = true;
+
+                console.log("Initialized / Updated session variables as non-host.");
+                debugSessionState();
+            } else if (name === 'transferAccess') {
+                console.log("Received transfer command from %s to %s.", e.from, e.to);
+
+                editor = e.to;
+                vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
+
+                console.log("Edit access transferred to %s.", e.to);
+            }
+        });
     }
 
     function debugSessionState() {
@@ -33,58 +85,6 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('requests:', requests);
         console.log('----------------------------');
     }
-
-    // Liveshare activity handler
-    (liveshare!.onActivity)!((e: any) => {
-        console.log("Recieved activity with type %s.", e.name);
-        const { timestamp, name, data } = e;
-
-        if (name === 'join' && liveshare!.session && liveshare!.session.role === vsls.Role.Host) {
-            console.log("Received join activity as host.");
-            debugSessionState();
-
-            if (!users.includes(data.username)) {
-                users.push(data.username);
-
-                console.log("Posting initiateJoin activity as host.");
-                debugSessionState();
-
-                (liveshare!.postActivity)!({
-                    timestamp: new Date(Date.now()),
-                    name: 'initiateJoin',
-                    data: { host, editor, users, requests }
-                });
-            }
-
-            console.log("Sent initiateJoin activity as host.");
-            debugSessionState();
-        } else if (name === 'initiateJoin' && liveshare!.session && liveshare!.session.role !== vsls.Role.Host) {
-            console.log("Received initiateJoin activity as non-host.");
-            debugSessionState();
-            
-            var updUsers;
-            ({ host, editor, users: updUsers, requests } = data);
-            const newUsers = updUsers.filter((x: string) => !users.includes(x));
-            
-            if (newUsers.size() === 1) {
-                vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
-            } else {
-                vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
-            }
-            
-            inSession = true;
-
-            console.log("Initialized / Updated session variables as non-host.");
-            debugSessionState();
-        } else if (name === 'transferAccess') {
-            console.log("Received transfer command from %s to %s.", e.from, e.to);
-
-            editor = e.to;
-            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
-
-            console.log("Edit access transferred to %s.", e.to);
-        }
-    });
 
     // Revert unauthorized edits and show popup
     vscode.workspace.onDidChangeTextDocument(event => {
@@ -115,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        initLiveshare!();
+        initLiveShare();
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
@@ -143,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        initLiveshare();
+        initLiveShare();
 
         // const link = await vscode.window.showInputBox({ prompt: 'Enter LiveShare join link' });
         // if (!link) {
