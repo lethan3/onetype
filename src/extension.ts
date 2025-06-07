@@ -18,11 +18,24 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
     }
 
+    function debugSessionState() {
+        console.log('--- Session State Debug ---');
+        console.log('inSession:', inSession);
+        console.log('host:', host);
+        console.log('editor:', editor);
+        console.log('users:', users);
+        console.log('requests:', requests);
+        console.log('----------------------------');
+    }
+
     // LiveShare activity handler
     (liveshare.onActivity)!((e: any) => {
         const { timestamp, name, data } = e;
 
         if (name === 'join' && liveshare.session && liveshare.session.role === vsls.Role.Host) {
+            console.log("Received join activity as host.");
+            debugSessionState();
+
             if (!users.includes(data.username)) {
                 users.push(data.username);
                 (liveshare.postActivity)!({
@@ -31,13 +44,26 @@ export async function activate(context: vscode.ExtensionContext) {
                     data: { host, editor, users, requests }
                 });
             }
+
+            console.log("Sent initiateJoin activity as host.");
+            debugSessionState();
         } else if (name === 'initiateJoin' && liveshare.session && liveshare.session.role !== vsls.Role.Host) {
+            console.log("Received initiateJoin activity as non-host.");
+            debugSessionState();
+
             ({ host, editor, users, requests } = data);
 
             inSession = true;
+
+            console.log("Initialized / Updated session variables as non-host.");
+            debugSessionState();
         } else if (name === 'transferAccess') {
+            console.log("Received transfer command from %s to %s.", e.from, e.to);
+
             editor = e.to;
             vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
+
+            console.log("Edit access transferred to %s.", e.to);
         }
     });
 
