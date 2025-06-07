@@ -64,8 +64,6 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
-
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
             return;
@@ -77,6 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
         users = [username];
         requests = [];
 
+        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
         console.log("Hosting started.");
         debugSessionState();
 
@@ -86,9 +85,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 users.push(data.username);
                 debugSessionState();
                 await service.notify('initiateJoin', { host, editor, users, requests });
-                vscode.window.showInformationMessage("✅ User %s joined.", data.username);
+                vscode.window.showInformationMessage("✅ User " + data.username + " joined.");
                 console.log("Sent initiateJoin to all users.");
             }
+        });
+
+        service.onNotify('initiateJoin', (data: any) => {
+            console.log("Received my own initiateJoin notification.");
         });
 
         service.onNotify('transferAccess', (data: any) => {
@@ -96,6 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
             editor = data.to;
             vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
         });
+
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', async () => {
@@ -135,7 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (newUsers.length === 1) {
                 vscode.window.showInformationMessage("✅ User " + newUsers[0] + " joined.");
             } else {
-                vscode.window.showInformationMessage("✅ Joined with users %s.", updUsers.join(', '));
+                vscode.window.showInformationMessage("✅ Joined with users " + updUsers.join(', ') + ".");
             }
 
             users = updUsers;
