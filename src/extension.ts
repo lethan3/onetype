@@ -38,6 +38,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
             if (!users.includes(data.username)) {
                 users.push(data.username);
+
+                console.log("Posting initiateJoin activity as host.");
+                debugSessionState();
+                
                 (liveshare.postActivity)!({
                     timestamp: new Date(Date.now()),
                     name: 'initiateJoin',
@@ -135,11 +139,13 @@ export async function activate(context: vscode.ExtensionContext) {
         // Wait until session is fully joined
         // liveshare.onDidChangeSession(e => {
             // if (e.session && e.session.role !== vsls.Role.Host) {
-                (liveshare.postActivity)!({ 
-                    timestamp: new Date(Date.now()),
-                    name: 'join', 
-                    data: { username }
-                });
+        
+        console.log("Posting join activity as %s.", username);
+        (liveshare.postActivity)!({ 
+            timestamp: new Date(Date.now()),
+            name: 'join', 
+            data: { username }
+        });
             // }
         // });
     }));
@@ -159,6 +165,8 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         editor = target;
+
+        console.log("Posting transferAccess activity from %s to %s.", myUsername, target);
         (liveshare.postActivity!)({ 
             timestamp: new Date(Date.now()),
             name: 'transferAccess', 
