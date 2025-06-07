@@ -18,8 +18,6 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
     }
 
-<<<<<<< HEAD
-=======
     function debugSessionState() {
         console.log('--- Session State Debug ---');
         console.log('inSession:', inSession);
@@ -29,7 +27,6 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('requests:', requests);
         console.log('----------------------------');
     }
->>>>>>> da8cc6ad12ae74eed5eb925472312caf5ebce0e1
 
     // LiveShare activity handler
     (liveshare.onActivity)!((e: any) => {
