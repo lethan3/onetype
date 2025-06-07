@@ -18,6 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
     }
 
+
     // LiveShare activity handler
     (liveshare.onActivity)!((e: any) => {
         const { timestamp, name, data } = e;
