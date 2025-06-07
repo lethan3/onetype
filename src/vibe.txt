@@ -1,8 +1,40 @@
+I want to build a VS Code extension which allows users to create a LiveShare and enforce that only one person can edit files at a time. 
+This can be done with the following code (but you do not have to do exactly this):
+
+// Revert unauthorized edits and show a strong popup
+    vscode.workspace.onDidChangeTextDocument(event => {
+        if (hasEditLock()) return;
+
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document !== event.document) return;
+
+        // Show popup if enough time has passed
+        const now = Date.now();
+        if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
+            lastEditErrorTime = now;
+
+            // Use next tick to avoid suppression
+            setTimeout(() => {
+                vscode.window.showErrorMessage('❌ Edit denied. You do not hold the lock.', { modal: true });
+            }, 0);
+        }
+
+        // Revert the edit
+        vscode.commands.executeCommand('workbench.action.files.revert');
+    });
+
+I would like to create the extension.ts and package.json files necessary to do this. Please refer to the below implementation
+details to create the files. Keep the comments if possible, but if rearrangement is necessary for functionality, do so. Also,
+if the extension will not function if you do not add additional functionality, do so as well.
+
+Please use the vsls Activity API for communication, as detailed below.
+
 Session variables:
     * inSession = Boolean, currently in a session or not
     * host = Current host of the session
     * editor = Current editor of the session
     * users = List of usernames in the session
+    * myUsername = My username
     * requests = Queue of usernames requesting edit
 
 Necessary functions:
