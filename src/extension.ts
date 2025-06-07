@@ -81,11 +81,12 @@ export async function activate(context: vscode.ExtensionContext) {
         debugSessionState();
 
         service.onNotify('join', async (data: any) => {
-            console.log("Received join notification as host.");
+            console.log("Received join notification of %s as host.", data.username);
             if (!users.includes(data.username)) {
                 users.push(data.username);
                 debugSessionState();
                 await service.notify('initiateJoin', { host, editor, users, requests });
+                vscode.window.showInformationMessage("✅ User %s joined.", data.username);
                 console.log("Sent initiateJoin to all users.");
             }
         });
@@ -124,6 +125,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
         await proxy.notify('join', { username });
         console.log("Sent join notification as guest.");
+
+        proxy.onNotify('initiateJoin', (data: any) => {
+            console.log("Received initiateJoin as guest.");
+            let updUsers;
+            ({ host, editor, users: updUsers, requests } = data);
+            const newUsers = updUsers.filter((x: string) => !users.includes(x));
+
+            if (newUsers.length === 1) {
+                vscode.window.showInformationMessage("✅ User " + newUsers[0] + " joined.");
+            } else {
+                vscode.window.showInformationMessage("✅ Joined with users %s.", updUsers.join(', '));
+            }
+
+            users = updUsers;
+
+            inSession = true;
+            debugSessionState();
+        });
 
         proxy.onNotify('transferAccess', (data: any) => {
             console.log("Recieved transferAccess notification: " + data);
