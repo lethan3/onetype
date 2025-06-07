@@ -11,16 +11,16 @@ let requests: string[] = [];
 let lastEditErrorTime = 0;
 const ERROR_INTERVAL_MS = 5000;
 let myUsername: string | null = null;
-let liveshare: vsls.LiveShare;
+let liveshare: vsls.LiveShare | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    async function initLiveShare() {
+    async function initLiveshare() {
         liveshare = (await vsls.getApi())!;
         if (!liveshare) {
-            vscode.window.showErrorMessage('Live Share not detected. Are you currently in a Live Share session?');
+            vscode.window.showErrorMessage('LiveShare not detected. Are you currently in a LiveShare session?');
             return;
         } else {
-            vscode.window.showInformationMessage('Live Share session detected.');
+            vscode.window.showInformationMessage('LiveShare session detected.');
         }
     }
 
@@ -34,12 +34,12 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('----------------------------');
     }
 
-    // LiveShare activity handler
-    (liveshare.onActivity)!((e: any) => {
+    // Liveshare activity handler
+    (liveshare!.onActivity)!((e: any) => {
         console.log("Recieved activity with type %s.", e.name);
         const { timestamp, name, data } = e;
 
-        if (name === 'join' && liveshare.session && liveshare.session.role === vsls.Role.Host) {
+        if (name === 'join' && liveshare!.session && liveshare!.session.role === vsls.Role.Host) {
             console.log("Received join activity as host.");
             debugSessionState();
 
@@ -49,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 console.log("Posting initiateJoin activity as host.");
                 debugSessionState();
 
-                (liveshare.postActivity)!({
+                (liveshare!.postActivity)!({
                     timestamp: new Date(Date.now()),
                     name: 'initiateJoin',
                     data: { host, editor, users, requests }
@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
             console.log("Sent initiateJoin activity as host.");
             debugSessionState();
-        } else if (name === 'initiateJoin' && liveshare.session && liveshare.session.role !== vsls.Role.Host) {
+        } else if (name === 'initiateJoin' && liveshare!.session && liveshare!.session.role !== vsls.Role.Host) {
             console.log("Received initiateJoin activity as non-host.");
             debugSessionState();
             
@@ -115,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        initLiveShare();
+        initLiveshare!();
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
@@ -128,7 +128,7 @@ export async function activate(context: vscode.ExtensionContext) {
         users = [username];
         requests = [];
 
-        // const sessionUri = await liveshare.share({});
+        // const sessionUri = await liveshare!.share({});
 
         vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
 
@@ -143,9 +143,9 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        initLiveShare();
+        initLiveshare();
 
-        // const link = await vscode.window.showInputBox({ prompt: 'Enter Live Share join link' });
+        // const link = await vscode.window.showInputBox({ prompt: 'Enter LiveShare join link' });
         // if (!link) {
         //     return;
         // }
@@ -156,14 +156,14 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         myUsername = username;
 
-        // await liveshare.join(vscode.Uri.file(link));
+        // await liveshare!.join(vscode.Uri.file(link));
 
         // Wait until session is fully joined
-        // liveshare.onDidChangeSession(e => {
+        // liveshare!.onDidChangeSession(e => {
             // if (e.session && e.session.role !== vsls.Role.Host) {
         
         console.log("Posting join activity as %s.", username);
-        (liveshare.postActivity)!({ 
+        (liveshare!.postActivity)!({ 
             timestamp: new Date(Date.now()),
             name: 'session/onetype-join', 
             data: { username }
@@ -190,7 +190,7 @@ export async function activate(context: vscode.ExtensionContext) {
         editor = target;
 
         console.log("Posting transferAccess activity from %s to %s.", myUsername, target);
-        (liveshare.postActivity!)({ 
+        (liveshare!.postActivity!)({ 
             timestamp: new Date(Date.now()),
             name: 'transferAccess', 
             data: { from: myUsername, to: target }
