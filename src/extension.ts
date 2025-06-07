@@ -148,7 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log("Posting join activity as %s.", username);
         (liveshare.postActivity)!({ 
             timestamp: new Date(Date.now()),
-            name: 'debug/join', 
+            name: 'session/onetype-join', 
             data: { username }
         });
         console.log("Finished posting join activity.");
