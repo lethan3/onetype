@@ -15,8 +15,10 @@ let myUsername: string | null = null;
 export async function activate(context: vscode.ExtensionContext) {
     const liveshare = (await vsls.getApi())!;
     if (!liveshare) {
-        vscode.window.showErrorMessage('Live Share API not available.');
+        vscode.window.showErrorMessage('Live Share not detected. Are you currently in a Live Share session?');
         return;
+    } else {
+        vscode.window.showInformationMessage('Live Share session detected.');
     }
 
     function debugSessionState() {
@@ -56,9 +58,17 @@ export async function activate(context: vscode.ExtensionContext) {
         } else if (name === 'initiateJoin' && liveshare.session && liveshare.session.role !== vsls.Role.Host) {
             console.log("Received initiateJoin activity as non-host.");
             debugSessionState();
-
-            ({ host, editor, users, requests } = data);
-
+            
+            var updUsers;
+            ({ host, editor, users: updUsers, requests } = data);
+            const newUsers = updUsers.filter((x: string) => !users.includes(x));
+            
+            if (newUsers.size() === 1) {
+                vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
+            } else {
+                vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
+            }
+            
             inSession = true;
 
             console.log("Initialized / Updated session variables as non-host.");
@@ -113,9 +123,9 @@ export async function activate(context: vscode.ExtensionContext) {
         users = [username];
         requests = [];
 
-        const sessionUri = await liveshare.share({});
+        // const sessionUri = await liveshare.share({});
 
-        vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
+        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
 
         console.log("Hosting started.");
         debugSessionState();
