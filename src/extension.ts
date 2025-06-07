@@ -134,7 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (newUsers.length === 1) {
                 vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
             } else {
-                vscode.window.showErrorMessage("Multiple joins simultaneously detected.");
+                vscode.window.showInformationMessage("You joined with users " + newUsers + ".");
             }
 
             inSession = true;
