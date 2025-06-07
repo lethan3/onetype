@@ -1,4 +1,5 @@
 // extension.ts
+import { debug } from 'console';
 import * as vscode from 'vscode';
 import * as vsls from 'vsls';
 
@@ -30,6 +31,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // LiveShare activity handler
     (liveshare.onActivity)!((e: any) => {
+        console.log("Recieved activity with type %s.", e.name);
         const { timestamp, name, data } = e;
 
         if (name === 'join' && liveshare.session && liveshare.session.role === vsls.Role.Host) {
@@ -41,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
                 console.log("Posting initiateJoin activity as host.");
                 debugSessionState();
-                
+
                 (liveshare.postActivity)!({
                     timestamp: new Date(Date.now()),
                     name: 'initiateJoin',
@@ -114,6 +116,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const sessionUri = await liveshare.share({});
 
         vscode.window.showInformationMessage('Live Share started. Invite link copied to clipboard.');
+
+        console.log("Hosting started.");
+        debugSessionState();
     }));
 
     // Command: Join a Session
