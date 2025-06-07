@@ -1,7 +1,8 @@
 {
-  "name": "onetype",
+  "name": "vscode-test-explorer-liveshare",
   "displayName": "OneType",
   "description": "Allow only one user to type, useful for mocking ICPC-style competitions",
+  "publisher": "hbenl",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.100.0"
