@@ -125,22 +125,6 @@ export async function activate(context: vscode.ExtensionContext) {
         await proxy.notify('join', { username });
         console.log("Sent join notification as guest.");
 
-        proxy.onNotify('initiateJoin', (data: any) => {
-            console.log("Received initiateJoin as guest.");
-            let updUsers;
-            ({ host, editor, users: updUsers, requests } = data);
-            const newUsers = updUsers.filter((x: string) => !users.includes(x));
-
-            if (newUsers.length === 1) {
-                vscode.window.showInformationMessage("User " + newUsers[0] + " joined.");
-            } else {
-                vscode.window.showInformationMessage("You joined with users " + newUsers + ".");
-            }
-
-            inSession = true;
-            debugSessionState();
-        });
-
         proxy.onNotify('transferAccess', (data: any) => {
             console.log("Recieved transferAccess notification: " + data);
             editor = data.to;
