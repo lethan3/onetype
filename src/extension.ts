@@ -123,10 +123,10 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const link = await vscode.window.showInputBox({ prompt: 'Enter Live Share join link' });
-        if (!link) {
-            return;
-        }
+        // const link = await vscode.window.showInputBox({ prompt: 'Enter Live Share join link' });
+        // if (!link) {
+        //     return;
+        // }
 
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
@@ -134,18 +134,18 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         myUsername = username;
 
-        await liveshare.join(vscode.Uri.file(link));
+        // await liveshare.join(vscode.Uri.file(link));
 
         // Wait until session is fully joined
-        liveshare.onDidChangeSession(e => {
-            if (e.session && e.session.role !== vsls.Role.Host) {
+        // liveshare.onDidChangeSession(e => {
+            // if (e.session && e.session.role !== vsls.Role.Host) {
                 (liveshare.postActivity)!({ 
                     timestamp: new Date(Date.now()),
                     name: 'join', 
                     data: { username }
                 });
-            }
-        });
+            // }
+        // });
     }));
 
     // Command: Give Edit Access
