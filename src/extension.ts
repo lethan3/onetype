@@ -7,7 +7,7 @@ let editor: string | null = null;
 let users: string[] = [];
 let requests: string[] = [];
 let lastEditErrorTime = 0;
-const ERROR_INTERVAL_MS = 5000;
+const ERROR_INTERVAL_MS = 500;
 let myUsername: string | null = null;
 let liveshare: vsls.LiveShare | null = null;
 
@@ -142,6 +142,7 @@ export async function activate(context: vscode.ExtensionContext) {
         });
 
         proxy.onNotify('transferAccess', (data: any) => {
+            console.log("Recieved transferAccess notification: " + data);
             editor = data.to;
             vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
         });
@@ -154,7 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const target = await vscode.window.showQuickPick(users.filter(u => u !== myUsername), {
-            placeHolder: 'Select a user to give edit access to'
+            placeHolder: 'Select a user to give edit access to:'
         });
         if (!target) {
             return;
