@@ -171,8 +171,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 );
 
                 if (result === 'Accept') {
-                    sendMassNotif('transferAccess', { from: data.from, to: data.to });
+                    // Send it from me to the requester.
+                    sendMassNotif('transferAccess', { from: data.to, to: data.from });
                 } else {
+                    // Deny the request.
                     sendMassNotif('denyRequest', { from: data.from, to: data.to })
                 }
             } else {
@@ -184,7 +186,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         watchMassNotif('denyRequest', async (data: any) => {
             if (myUsername === data.from) {
-                vscode.window.showErrorMessage('Your request for edit access was denied.');
+                vscode.window.showErrorMessage(`${ data.to } denied your request for edit access.`);
             }
         });
     }
@@ -398,8 +400,8 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        console.log("Posting requestAccess notification from %s to %s.", editor, myUsername);
-        await sendMassNotif('requestAccess', { from: editor, to: myUsername });
+        console.log("Posting requestAccess notification from %s to %s.", myUsername, editor);
+        await sendMassNotif('requestAccess', { from: myUsername, to: editor });
     }));
 }
 
