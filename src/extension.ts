@@ -324,7 +324,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
 
     // As guest, leave the session. Need to take care of directly exiting Live Share separately.
-    context.subscriptions.push(vscode.commands.registerCommand('onetype.leave', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('onetype.leaveSession', async () => {
         await sendMassNotif('leave', { user: myUsername, id: getMyId() });
         leave();
         vscode.window.showInformationMessage('✅ Left the OneType session.'); 
