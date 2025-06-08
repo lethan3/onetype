@@ -150,17 +150,17 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`The OneType session has been ended by the host.`, { modal: true });
         });
 
-        // Watch when someone leaves
-        watchMassNotif('leave', (data: any) => {
-            if (data.username === editor) {
-                // If the user who left was editing, transfer edit permission to the host.
-                editor = host;
-            }
+        // // Watch when someone leaves... maybe not necessary.
+        // watchMassNotif('leave', (data: any) => {
+        //     if (data.username === editor) {
+        //         // If the user who left was editing, transfer edit permission to the host.
+        //         editor = host;
+        //     }
 
-            users = users.filter(x => x !== data.username);
-            idToUsername.delete( data.id );
-            vscode.window.showInformationMessage(`✅ ${data.username} left.`, { modal: true });
-        });
+        //     users = users.filter(x => x !== data.username);
+        //     idToUsername.delete( data.id );
+        //     vscode.window.showInformationMessage(`✅ ${data.username} left.`, { modal: true });
+        // });
 
         watchMassNotif('requestAccess', async (data: any) => {
             if (myUsername === editor) {
@@ -187,6 +187,8 @@ export async function activate(context: vscode.ExtensionContext) {
         watchMassNotif('denyRequest', async (data: any) => {
             if (myUsername === data.from) {
                 vscode.window.showErrorMessage(`${ data.to } denied your request for edit access.`);
+            } else {
+                vscode.window.showErrorMessage(`${ data.to } denied the request from ${ data.from }.`);
             }
         });
     }
@@ -347,7 +349,7 @@ export async function activate(context: vscode.ExtensionContext) {
         await sendMassNotif('endSession', {});
     }));
 
-    // As guest, leave the session. Need to take care of directly exiting Live Share separately.
+    // As guest, leave the session. Need to take care of directly exiting Live Share separately.... maybe not??
     context.subscriptions.push(vscode.commands.registerCommand('onetype.leaveSession', async () => {
         await sendMassNotif('leave', { username: myUsername, id: getMyId() });
         leave();
