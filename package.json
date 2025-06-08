@@ -23,6 +23,10 @@
         "title": "OneType: Join Session"
       },
       {
+        "command": "onetype.endSession",
+        "title": "OneType: End Session"
+      },
+      {
         "command": "onetype.leaveSession",
         "title": "OneType: Leave Session"
       },
