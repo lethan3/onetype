@@ -172,11 +172,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
                 if (result === 'Accept') {
                     sendMassNotif('transferAccess', { from: data.from, to: data.to });
+                } else {
+                    sendMassNotif('denyRequest', { from: data.from, to: data.to })
                 }
             } else {
                 vscode.window.showInformationMessage(
                     `🔔 ${data.from} requested edit access from ${data.to}.`
                 );
+            }
+        });
+
+        watchMassNotif('denyRequest', async (data: any) => {
+            if (myUsername === data.from) {
+                vscode.window.showErrorMessage('Your request for edit access was denied.');
             }
         });
     }
