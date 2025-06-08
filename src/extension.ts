@@ -81,7 +81,7 @@ export async function activate(context: vscode.ExtensionContext) {
             // Help a guest broadcast to all, and do the function myself
             myNotifier!.onNotify(SEND_ALL_PREF + name, async (data: any) => {
                 console.log("As host, received request to broadcast %s.", name);
-                await myNotifier!.notify(name.slice(SEND_ALL_PREF.length), data);
+                await myNotifier!.notify(name, data);
                 handler(data);
             });
 
