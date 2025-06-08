@@ -35,6 +35,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const editorInstance = vscode.window.activeTextEditor;
         const peer = await liveshare?.getPeerForTextDocumentChangeEvent(event);
+        console.log("Change detected: My peer number is " + liveshare?.session.peerNumber + " and the peer responsible is " + peer?.peerNumber + ".");
+        
         if (!editorInstance || editorInstance.document !== event.document || peer?.peerNumber !== liveshare?.session.peerNumber) {
             // If the edit was not made by me
             return;
