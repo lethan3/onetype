@@ -27,36 +27,6 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('----------------------------');
     }
 
-    // Revert unauthorized edits and show popup
-    vscode.workspace.onDidChangeTextDocument(async event => {
-        if (!inSession) {
-            return;
-        }
-
-        const editorInstance = vscode.window.activeTextEditor;
-        const peer = await liveshare?.getPeerForTextDocumentChangeEvent(event);
-        console.log("Change detected: My peer number is " + liveshare?.session.peerNumber + " and the peer responsible is " + peer?.peerNumber + ".");
-        
-        if (editor === myUsername) {
-            // I hold the edit perms
-            return;
-        }
-        if (!editorInstance || editorInstance.document !== event.document || peer?.peerNumber !== liveshare?.session.peerNumber) {
-            // If the edit was not made by me
-            return;
-        }
-
-        const now = Date.now();
-        if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
-            lastEditErrorTime = now;
-            setTimeout(() => {
-                vscode.window.showErrorMessage('❌ Edit denied. You do not hold the lock.', { modal: true });
-            }, 0);
-        }
-
-        vscode.commands.executeCommand('workbench.action.files.revert');
-    });
-
     type NotifyHandler<T = any> = (data: T) => void;
 
     function makeNamedLocalEvent() {
@@ -131,7 +101,45 @@ export async function activate(context: vscode.ExtensionContext) {
             editor = data.to;
             vscode.window.showInformationMessage(`✅ ${editor} now holds edit permissions.`);
         });
+
+        watchMassNotif('detectChange', (data: any) => {
+            if (data.perpetratorID === liveshare?.session.peerNumber && myUsername !== editor) {
+                // It was me and I am not the editor
+
+                const now = Date.now();
+                if (now - lastEditErrorTime > ERROR_INTERVAL_MS) {
+                    lastEditErrorTime = now;
+                    setTimeout(() => {
+                        vscode.window.showErrorMessage('❌ Stop editing. You do not currently hold edit permissions.', { modal: true });
+                    }, 0);
+                }
+
+                vscode.commands.executeCommand('workbench.action.files.revert');
+            }
+        });
     }
+
+    // The API has a bug where even if you don't edit it will still show that you edited the workspace
+    // But if another person detects that you edited it it's probably your fault
+    // So this is just to blame whoever did it and send a message to that person to stop
+    // This probably introduces some latency but I have no idea how to do it any other way
+    vscode.workspace.onDidChangeTextDocument(async event => {
+        if (!inSession) {
+            return;
+        }
+
+        const editorInstance = vscode.window.activeTextEditor;
+        const peer = await liveshare?.getPeerForTextDocumentChangeEvent(event);
+        console.log("Change detected: My peer number is " + liveshare?.session.peerNumber + " and the peer responsible is " + peer?.peerNumber + ".");
+        
+        if (peer?.peerNumber === liveshare?.session.peerNumber) {
+            // This was me, ignore 
+            return;
+        }
+
+        sendMassNotif('detectChange', { perpetratorID: peer?.peerNumber });
+    });
+
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', async () => {
         if (inSession) {
