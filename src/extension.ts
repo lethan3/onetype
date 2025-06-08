@@ -8,7 +8,6 @@ let host: string | null = null;
 let editor: string | null = null;
 let users: string[] = [];
 let idToUsername: Map<number, string> = new Map();
-let requests: string[] = [];
 let lastEditErrorTime = 0;
 const ERROR_INTERVAL_MS = 50;
 let myUsername: string | null = null;
@@ -25,7 +24,6 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('host:', host);
         console.log('editor:', editor);
         console.log('users:', users);
-        console.log('requests:', requests);
         console.log('----------------------------');
     }
 
@@ -113,7 +111,6 @@ export async function activate(context: vscode.ExtensionContext) {
         editor = null;
         users = [];
         idToUsername = new Map<number, string>();
-        requests = [];
         lastEditErrorTime = 0;
         myUsername = null;
         liveshare = null;
@@ -163,6 +160,24 @@ export async function activate(context: vscode.ExtensionContext) {
             users = users.filter(x => x !== data.username);
             idToUsername.delete( data.id );
             vscode.window.showInformationMessage(`✅ ${data.username} left.`, { modal: true });
+        });
+
+        watchMassNotif('requestAccess', async (data: any) => {
+            if (myUsername === editor) {
+                const result = await vscode.window.showInformationMessage(
+                    `🔔 ${data.from} is requesting edit access.`,
+                    { modal: true },
+                    'Accept'
+                );
+
+                if (result === 'Accept') {
+                    sendMassNotif('transferAccess', { from: data.from, to: data.to });
+                }
+            } else {
+                vscode.window.showInformationMessage(
+                    `🔔 ${data.from} requested edit access from ${data.to}.`
+                );
+            }
         });
     }
 
@@ -225,7 +240,6 @@ export async function activate(context: vscode.ExtensionContext) {
         inSession = true;
         host = editor = username;
         users = [username];
-        requests = [];
 
         // Watch for joins to broadcast to guests.
         service.onNotify('join', async (data: any) => {
@@ -233,7 +247,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (!users.includes(data.username)) {
                 users.push(data.username);
                 debugSessionState();
-                await service.notify('initiateJoin', { host, editor, users, idToUsername, requests });
+                await service.notify('initiateJoin', { host, editor, users, idToUsername });
                 vscode.window.showInformationMessage("✅ User " + data.username + " joined.");
                 console.log("Sent initiateJoin to all users.");
             }
@@ -300,7 +314,7 @@ export async function activate(context: vscode.ExtensionContext) {
             console.log("Received initiateJoin as guest.");
 
             let updUsers;
-            ({ host, editor, users: updUsers, idToUsername, requests } = data);
+            ({ host, editor, users: updUsers, idToUsername } = data);
             const newUsers = updUsers.filter((x: string) => !users.includes(x));
 
             if (newUsers.length === 1) {
@@ -325,7 +339,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // As guest, leave the session. Need to take care of directly exiting Live Share separately.
     context.subscriptions.push(vscode.commands.registerCommand('onetype.leaveSession', async () => {
-        await sendMassNotif('leave', { user: myUsername, id: getMyId() });
+        await sendMassNotif('leave', { username: myUsername, id: getMyId() });
         leave();
         vscode.window.showInformationMessage('✅ Left the OneType session.'); 
     }));
@@ -362,6 +376,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
         console.log("Posting transferAccess notification from %s to %s.", editor, myUsername);
         await sendMassNotif('transferAccess', { from: editor, to: myUsername });
+    }));
+
+    // As non-editor, request access.
+    context.subscriptions.push(vscode.commands.registerCommand('onetype.requestAccess', async () => {
+        if (!inSession) {
+            vscode.window.showErrorMessage('You must be in a session to use this command.');
+            return;
+        }
+
+        if (myUsername === editor) {
+            vscode.window.showInformationMessage('You are already the editor.');
+            return;
+        }
+
+        console.log("Posting requestAccess notification from %s to %s.", editor, myUsername);
+        await sendMassNotif('requestAccess', { from: editor, to: myUsername });
     }));
 }
 
