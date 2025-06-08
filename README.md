@@ -33,7 +33,7 @@ VS Code Live Share: Can be downloaded from the Extensions Marketplace on VS Code
 ## Known Issues
 
 * Currently, editing by non-editors is not forcefully prohibited; instead, a pop-up appears preventing the user from making continuous edits. Obviously, the host may use another text editor to change the code on their device without being restricted by the OneType edit permissions.
-* The publisher and extension ID are currently altered in order to grant access to the Live Share API.
+* The publisher and extension ID are currently altered in order to grant access to the Live Share API (see [https://github.com/microsoft/live-share/issues/2896](https://github.com/microsoft/live-share/issues/2896) for other examples of this issue). As such, the extension appears as "Test Explorer Live Share" in the Extensions sidebar; DO NOT update from there or you will have to reinstall. If this gets enough support I may consider publishing and/or requesting access to the Live Share API.
 
 ## Release Notes
 
