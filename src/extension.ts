@@ -1,3 +1,4 @@
+import { userInfo } from 'os';
 import * as vscode from 'vscode';
 import * as vsls from 'vsls';
 
@@ -27,13 +28,15 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     // Revert unauthorized edits and show popup
-    vscode.workspace.onDidChangeTextDocument(event => {
+    vscode.workspace.onDidChangeTextDocument(async event => {
         if (!inSession || editor === myUsername) {
             return;
         }
 
         const editorInstance = vscode.window.activeTextEditor;
-        if (!editorInstance || editorInstance.document !== event.document) {
+        const peer = await liveshare?.getPeerForTextDocumentChangeEvent(event);
+        if (!editorInstance || editorInstance.document !== event.document || peer?.peerNumber !== liveshare?.session.peerNumber) {
+            // If the edit was not made by me
             return;
         }
 
