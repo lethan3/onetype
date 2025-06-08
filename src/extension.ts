@@ -347,6 +347,22 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log("Posting transferAccess notification from %s to %s.", myUsername, target);
         await sendMassNotif('transferAccess', { from: myUsername, to: target });
     }));
+
+    // As non-editor, force take access.
+    context.subscriptions.push(vscode.commands.registerCommand('onetype.forceAccess', async () => {
+        if (!inSession) {
+            vscode.window.showErrorMessage('You must be in a session to use this command.');
+            return;
+        }
+
+        if (myUsername === editor) {
+            vscode.window.showInformationMessage('You are already the editor.');
+            return;
+        }
+
+        console.log("Posting transferAccess notification from %s to %s.", editor, myUsername);
+        await sendMassNotif('transferAccess', { from: editor, to: myUsername });
+    }));
 }
 
 export function deactivate() {}
