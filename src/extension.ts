@@ -155,14 +155,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Watch when someone leaves
         watchMassNotif('leave', (data: any) => {
-            if (data.user === editor) {
+            if (data.username === editor) {
                 // If the user who left was editing, transfer edit permission to the host.
                 editor = host;
             }
 
-            users = users.filter(x => x !== data.user);
+            users = users.filter(x => x !== data.username);
             idToUsername.delete( data.id );
-            vscode.window.showInformationMessage(`✅ ${data.user} left.`, { modal: true });
+            vscode.window.showInformationMessage(`✅ ${data.username} left.`, { modal: true });
         });
     }
 
