@@ -1,71 +1,42 @@
-# test README
+# OneType: VS Code Extension for Virtualing ICPC-Format Contests
 
-This is the README for your extension "test". After writing up a brief description, we recommend including the following sections.
+Enforces the one-computer rule when virtualing ICPC-style contests. Works on top of VS Code Live Share to provide a shared workspace where only one user is permitted to type at a time.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Commands for managing and assigning edit permissions can be accessed through the Command Palette (`Ctrl + Shift + P` (Windows/Linux), `Shift + Command + P` (Mac)):
 
-For example if there is an image subfolder under your extension project workspace:
+* `OneType: Host Session`: Hosts a new OneType session.
+* `OneType: Join Session`: Joins a OneType session.
+* `OneType: End Session`: As the host, ends a OneType session for all users.
+* `OneType: Leave Session`: As a guest, leaves a OneType session.
+* `OneType: Give Access to User`: Prompts for the user to give edit access to, then grants edit access for that user.
+* `OneType: Request Access`: Notifies the current editor, and requests them to yield access.
+* `OneType: Force Take Access`: Forcefully takes access from the current editor.
 
-\!\[feature X\]\(images/feature-x.png\)
+## Installation
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+Download the `.vsix` file, then navigate to the Command Palette and install with `Extensions: Install from VSIX...`.
+
+## Usage
+
+* Choose one person to host the extension. They should use the command `Ctrl + K, Ctrl + O` (`Command + K, Command + O` on Mac) to open and select a folder to share.
+* They should then set up a VS Code Live Share, distribute the join link, and use the `OneType: Host Session` command to start a new OneType session.
+* Others can join at any time. They should first join the Live Share, then join with the `OneType: Join Session` command.
+* Edit permissions commands can be used by anyone in the OneType session, not just the host.
+* At any time, guests may leave the OneType session, and the host can end the OneType session through the commands above.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+VS Code Live Share: Can be downloaded from the Extensions Marketplace on VS Code.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* Currently, editing by non-editors is not forcefully prohibited; instead, a pop-up appears preventing the user from making continuous edits. Obviously, the host may use another text editor to change the code on their device without being restricted by the OneType edit permissions.
+* The publisher and extension ID are currently altered in order to grant access to the Live Share API.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release.

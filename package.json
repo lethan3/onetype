@@ -4,6 +4,7 @@
   "description": "Allow only one user to type, useful for mocking ICPC-style competitions",
   "publisher": "hbenl",
   "version": "0.0.1",
+  "repository": "https://github.com/lethan3/onetype.git",
   "engines": {
     "vscode": "^1.100.0"
   },
