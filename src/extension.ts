@@ -29,7 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Revert unauthorized edits and show popup
     vscode.workspace.onDidChangeTextDocument(async event => {
-        if (!inSession || editor === myUsername) {
+        if (!inSession) {
             return;
         }
 
@@ -37,6 +37,10 @@ export async function activate(context: vscode.ExtensionContext) {
         const peer = await liveshare?.getPeerForTextDocumentChangeEvent(event);
         console.log("Change detected: My peer number is " + liveshare?.session.peerNumber + " and the peer responsible is " + peer?.peerNumber + ".");
         
+        if (editor === myUsername) {
+            // I hold the edit perms
+            return;
+        }
         if (!editorInstance || editorInstance.document !== event.document || peer?.peerNumber !== liveshare?.session.peerNumber) {
             // If the edit was not made by me
             return;
