@@ -60,14 +60,18 @@ export async function activate(context: vscode.ExtensionContext) {
     async function sendMassNotif(name: string, data: any) {
         if (isHost()) {
             // Am host -- if not request to send to all (this shouldn't happen), send to everyone
+            console.log("As host, broadcasting %s.", name);
             if (!name.startsWith(SEND_ALL_PREF)) {
                 await myNotifier!.notify(name, data);
             }
 
             // Do function myself when host
+
+            console.log("As host, self-notifying %s.", name);
             localEvents.notify(name, data);
         } else {
             // Am not host -- send request to host to send to everyone
+            console.log("As guest, requesting host to broadcast %s.", name);
             await myNotifier!.notify(SEND_ALL_PREF + name, data);
         }
     }
@@ -76,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (isHost()) {
             // Help a guest broadcast to all, and do the function myself
             myNotifier!.onNotify(SEND_ALL_PREF + name, async (data: any) => {
+                console.log("As host, received request to broadcast %s.", name);
                 await myNotifier!.notify(name.slice(SEND_ALL_PREF.length), data);
                 handler(data);
             });
@@ -87,6 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
         } else {
             // Am not host -- just do the function
             myNotifier!.onNotify(name, (data: any) => {
+                console.log("As guest, received notification for %s.", name);
                 handler(data);
             });
         }
