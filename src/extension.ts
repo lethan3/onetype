@@ -136,7 +136,8 @@ export async function activate(context: vscode.ExtensionContext) {
             // This was me, ignore 
             return;
         }
-
+        
+        console.log("Sending blame with peerNumber " + peer?.peerNumber + ".");
         sendMassNotif('detectChange', { perpetratorID: peer?.peerNumber });
     });
 
