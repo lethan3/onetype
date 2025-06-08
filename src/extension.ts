@@ -10,8 +10,10 @@ let lastEditErrorTime = 0;
 const ERROR_INTERVAL_MS = 500;
 let myUsername: string | null = null;
 let liveshare: vsls.LiveShare | null = null;
+let myNotifier: vsls.SharedService | vsls.SharedServiceProxy | null = null;
 
 const SERVICE_NAME = 'onetype';
+const SEND_ALL_PREF = 'sendToAll-';
 
 export async function activate(context: vscode.ExtensionContext) {
     function debugSessionState() {
@@ -46,6 +48,82 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('workbench.action.files.revert');
     });
 
+    type NotifyHandler<T = any> = (data: T) => void;
+
+    function makeNamedLocalEvent() {
+        const handlers: Record<string, NotifyHandler[]> = {};
+
+        return {
+            watch(name: string, handler: NotifyHandler) {
+                if (!handlers[name]) {
+                    handlers[name] = [];
+                }
+                handlers[name].push(handler);
+            },
+
+            notify(name: string, data: any) {
+                const hs = handlers[name];
+                if (hs) {
+                    for (const h of hs) {
+                        h(data);
+                    }
+                }
+            }
+        };
+    }
+
+    function isHost() {
+        return myUsername === host;
+    }
+
+    const localEvents = makeNamedLocalEvent();
+
+    async function sendMassNotif(name: string, data: any) {
+        if (isHost()) {
+            // Am host -- if not request to send to all (this shouldn't happen), send to everyone
+            if (!name.startsWith(SEND_ALL_PREF)) {
+                await myNotifier!.notify(name, data);
+            }
+
+            // Do function myself when host
+            localEvents.notify(name, data);
+        } else {
+            // Am not host -- send request to host to send to everyone
+            await myNotifier!.notify(SEND_ALL_PREF + name, data);
+        }
+    }
+
+    async function watchMassNotif(name: string, handler: vsls.NotifyHandler) {
+        if (isHost()) {
+            // Help a guest broadcast to all, and do the function myself
+            myNotifier!.onNotify(SEND_ALL_PREF + name, async (data: any) => {
+                await myNotifier!.notify(name.slice(SEND_ALL_PREF.length), handler);
+                handler(data);
+            });
+
+            // Set up to do function myself when host
+            localEvents.watch(name, (data: any) => {
+                handler(data);
+            });
+        } else {
+            // Am not host -- just do the function
+            myNotifier!.onNotify(name, (data: any) => {
+                handler(data);
+            });
+        }
+    }
+
+    // Initialize notifications that anyone can send and everyone will receive
+    function initMassNotifs() {
+        // Call all of the watchMassNotifs with the corresponding actions
+
+        watchMassNotif('transferAccess', (data: any) => {
+            console.log("Received transferAccess command from %s to %s.", data.from, data.to);
+            editor = data.to;
+            vscode.window.showInformationMessage(`✅ ${editor} now holds edit permissions.`);
+        });
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('onetype.hostSession', async () => {
         if (inSession) {
             vscode.window.showErrorMessage('Already in a session.');
@@ -64,6 +142,8 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
+        myNotifier = service;
+
         const username = await vscode.window.showInputBox({ prompt: 'Enter your username' });
         if (!username) {
             return;
@@ -74,10 +154,6 @@ export async function activate(context: vscode.ExtensionContext) {
         host = editor = username;
         users = [username];
         requests = [];
-
-        vscode.window.showInformationMessage('OneType session started. Share your LiveShare link to others to join the session.');
-        console.log("Hosting started.");
-        debugSessionState();
 
         service.onNotify('join', async (data: any) => {
             console.log("Received join notification of %s as host.", data.username);
@@ -90,16 +166,15 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         });
 
-        service.onNotify('initiateJoin', (data: any) => {
-            console.log("Received my own initiateJoin notification.");
-        });
+        // service.onNotify('initiateJoin', (data: any) => {
+        //     console.log("Received my own initiateJoin notification.");
+        // });
 
-        service.onNotify('transferAccess', (data: any) => {
-            console.log("Received transferAccess command from %s to %s.", data.from, data.to);
-            editor = data.to;
-            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
-        });
+        initMassNotifs();
 
+        vscode.window.showInformationMessage('✅ OneType session started. Share your LiveShare link to others to join the session.');
+        console.log("Hosting started.");
+        debugSessionState();
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.joinSession', async () => {
@@ -127,6 +202,8 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
+        myNotifier = proxy;
+
         await proxy.notify('join', { username });
         console.log("Sent join notification as guest.");
 
@@ -148,11 +225,7 @@ export async function activate(context: vscode.ExtensionContext) {
             debugSessionState();
         });
 
-        proxy.onNotify('transferAccess', (data: any) => {
-            console.log("Recieved transferAccess notification: " + data);
-            editor = data.to;
-            vscode.window.showInformationMessage(`✅ Edit access granted to ${editor}.`);
-        });
+        initMassNotifs();
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('onetype.giveAccess', async () => {
@@ -168,16 +241,8 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        editor = target;
-
-        const proxy = await liveshare!.getSharedService(SERVICE_NAME);
-        if (!proxy) {
-            vscode.window.showErrorMessage('Cannot find host session.');
-            return; 
-        }
-
         console.log("Posting transferAccess notification from %s to %s.", myUsername, target);
-        await proxy.notify('transferAccess', { from: myUsername, to: target });
+        await sendMassNotif('transferAccess', { from: myUsername, to: target });
     }));
 }
 
