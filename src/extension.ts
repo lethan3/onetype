@@ -175,7 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     sendMassNotif('transferAccess', { from: data.to, to: data.from });
                 } else {
                     // Deny the request.
-                    sendMassNotif('denyRequest', { from: data.from, to: data.to })
+                    sendMassNotif('denyRequest', { from: data.from, to: data.to });
                 }
             } else {
                 vscode.window.showInformationMessage(
@@ -188,7 +188,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (myUsername === data.from) {
                 vscode.window.showErrorMessage(`${ data.to } denied your request for edit access.`);
             } else {
-                vscode.window.showErrorMessage(`${ data.to } denied the request from ${ data.from }.`);
+                vscode.window.showErrorMessage(`${ data.to } denied the request for edit access from ${ data.from }.`);
             }
         });
     }
@@ -237,7 +237,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const service = await liveshare.shareService(SERVICE_NAME);
         if (!service) {
-            vscode.window.showErrorMessage('Failed to share RPC service.');
+            vscode.window.showErrorMessage('Failed to share RPC service. Contact the developer.');
             return;
         }
 
@@ -262,6 +262,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 await service.notify('initiateJoin', { host, editor, users, idToUsername });
                 vscode.window.showInformationMessage("✅ User " + data.username + " joined.");
                 console.log("Sent initiateJoin to all users.");
+            } else {
+                vscode.window.showErrorMessage("That username is already taken, rejoin and choose another one.");
             }
         });
 
@@ -346,11 +348,21 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // As host, end the session for all users.
     context.subscriptions.push(vscode.commands.registerCommand('onetype.endSession', async () => {
+        if (myUsername !== host) {
+            vscode.window.showErrorMessage('You are not the host; you can only leave the session.');
+            return;
+        }
+
         await sendMassNotif('endSession', {});
     }));
 
     // As guest, leave the session. Need to take care of directly exiting Live Share separately.... maybe not??
     context.subscriptions.push(vscode.commands.registerCommand('onetype.leaveSession', async () => {
+        if (myUsername !== host) {
+            vscode.window.showErrorMessage('You are the host; you can only end the session.');
+            return;
+        }
+
         await sendMassNotif('leave', { username: myUsername, id: getMyId() });
         leave();
         vscode.window.showInformationMessage('✅ Left the OneType session.'); 
