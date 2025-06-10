@@ -21,8 +21,8 @@ Download the `.vsix` file, then navigate to the Command Palette and install with
 ## Usage
 
 * Choose one person to host the extension. They should use the command `Ctrl + K, Ctrl + O` (`Command + K, Command + O` on Mac) to open and select a folder to share.
-* They should then set up a VS Code Live Share, distribute the join link, and use the `OneType: Host Session` command to start a new OneType session.
-* Others can join at any time. They should first join the Live Share, then join with the `OneType: Join Session` command.
+* They should then set up a VS Code Live Share, distribute the join link, then *once the Live Share session has started* use the `OneType: Host Session` command to start a new OneType session.
+* Others can join at any time. They should first join the Live Share, then join *once the Live Share session has been completely joined* with the `OneType: Join Session` command.
 * Edit permissions commands can be used by anyone in the OneType session, not just the host.
 * At any time, guests may leave the OneType session, and the host can end the OneType session through the commands above.
 
@@ -34,6 +34,15 @@ VS Code Live Share: Can be downloaded from the Extensions Marketplace on VS Code
 
 * Currently, editing by non-editors is not forcefully prohibited; instead, a pop-up appears preventing the user from making continuous edits. Obviously, the host may use another text editor to change the code on their device without being restricted by the OneType edit permissions.
 * The publisher and extension ID are currently altered in order to grant access to the Live Share API (see [https://github.com/microsoft/live-share/issues/2896](https://github.com/microsoft/live-share/issues/2896) for other examples of this issue). As such, the extension appears as "Test Explorer Live Share" in the Extensions sidebar; DO NOT update from there or you will have to reinstall. If this gets enough support I may consider publishing and/or requesting access to the Live Share API.
+
+## TODO
+
+* Add method to notify/alert any user without requesting edit permissions.
+* Add sidebar detailing status of each user (who is the host, who currently has edit permissions)
+* Possibly add option to use as a more general competitive-programming teamwork extension, including the ability to disable the one-edit rule, and problem management:
+  * Add problem statuses (read, solution idea, implementing, AC) to each problem
+  * Auto-detect problem solution files to easily jump to problems
+  * Auto-detect status of each user based on edit actions ("implementing K...")
 
 ## Release Notes
 
