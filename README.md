@@ -21,8 +21,8 @@ Download the `.vsix` file, then navigate to the Command Palette and install with
 ## Usage
 
 * Choose one person to host the extension. They should use the command `Ctrl + K, Ctrl + O` (`Command + K, Command + O` on Mac) to open and select a folder to share.
-* They should then set up a VS Code Live Share, distribute the join link, then *once the Live Share session has started* use the `OneType: Host Session` command to start a new OneType session.
-* Others can join at any time. They should first join the Live Share, then join *once the Live Share session has been completely joined* with the `OneType: Join Session` command.
+* They should then set up a VS Code Live Share, distribute the join link, then *once the Live Share session has started* use the `OneType: Host Session` command (`Ctrl + Shift + P` then type the command name) to start a new OneType session.
+* Others can join at any time. They should **first join the Live Share**, then, *once the Live Share session has been completely joined* join the **OneType session** with the `OneType: Join Session` command. *If the OneType command does not appear after joining the Live Share, it may be necessary to reinstall the extension via VSIX again, then retry.*
 * Edit permissions commands can be used by anyone in the OneType session, not just the host.
 * At any time, guests may leave the OneType session, and the host can end the OneType session through the commands above.
 
